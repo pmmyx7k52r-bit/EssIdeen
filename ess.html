@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Was-soll-ich-essen-App</title>
+<style>
+:root { --primary: #2ecc71; --secondary: #27ae60; --bg: #f0f2f5; }
+body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; }
+.container { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); width: 100%; max-width: 450px; }
+h1 { text-align: center; color: #2c3e50; font-size: 1.4rem; margin-bottom: 20px; }
+label { display: block; margin: 12px 0 5px; font-weight: bold; color: #34495e; font-size: 0.9rem; }
+input, select, button { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; margin-bottom: 8px; }
+.ingredients-group { background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px dashed #bbb; }
+button { background: var(--primary); color: white; border: none; margin-top: 15px; cursor: pointer; font-weight: bold; }
+button:hover { background: var(--secondary); }
+.recipe-card { background: #fff; border-radius: 10px; overflow: hidden; margin-top: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #eee; }
+.recipe-card img { width: 100%; height: 180px; object-fit: cover; }
+.recipe-content { padding: 15px; }
+.recipe-content h3 { margin: 0 0 10px 0; font-size: 1.1rem; color: #2c3e50; }
+.meta { font-size: 0.8rem; color: #7f8c8d; margin-bottom: 10px; }
+.link-btn { display: block; text-align: center; background: #3498db; color: white; padding: 8px; border-radius: 5px; text-decoration: none; font-weight: bold; }
+#loader { display: none; text-align: center; margin: 20px 0; font-weight: bold; color: #3498db; }
+</style>
+</head>
+<body>
+
+<div class="container">
+<h1>🍽️ Rezept-Finder (DE)</h1>
+<div class="ingredients-group">
+<label>Deine Zutaten</label>
+<input type="text" id="ing1" placeholder="Zutat 1 (z.B. Kartoffeln)">
+<input type="text" id="ing2" placeholder="Zutat 2 (z.B. Spinat)">
+<input type="text" id="ing3" placeholder="Zutat 3 (optional)">
+</div>
+
+<label>Was darf rein?</label>
+<select id="diet">
+<option value="all">Alles (Fleisch & Fisch)</option>
+<option value="meat">Nur Fleisch (kein Fisch)</option>
+<option value="fish">Nur Fisch (kein Fleisch)</option>
+<option value="vegetarian">Vegetarisch</option>
+<option value="vegan">Vegan</option>
+</select>
+
+<label>Zeitaufwand</label>
+<select id="effort">
+<option value="20">Schnell (bis 20 Min)</option>
+<option value="45">Einfach (bis 45 Min)</option>
+<option value="120">Umfangreich</option>
+</select>
+
+<button onclick="searchRecipes()">Rezepte auf Deutsch suchen</button>
+
+<div id="loader">Suche läuft... 🔍</div>
+<div id="results"></div>
+</div>
+
+<script>
+async function searchRecipes() {
+const i1 = document.getElementById('ing1').value;
+const i2 = document.getElementById('ing2').value;
+const i3 = document.getElementById('ing3').value;
+const diet = document.getElementById('diet').value;
+const maxTime = document.getElementById('effort').value;
+const resultsDiv = document.getElementById('results');
+const loader = document.getElementById('loader');
+
+let ingredients = [i1, i2, i3].filter(i => i !== "").join(',');
+if (!ingredients) { alert("Gib bitte mindestens eine Zutat ein!"); return; }
+
+resultsDiv.innerHTML = ""
+loader.style.display = "block"
+
+const API_KEY = '9ba337b49cda43b1a280c6bf0db26628';
+// Logik für Fleisch/Fisch Trennung
+let exclude = ""
+let dietParam = ""
+if(diet === "meat") exclude = "fish,seafood"
+if(diet === "fish") exclude = "meat,chicken,pork,beef"
+if(diet === "vegetarian") dietParam = "vegetarian"
+if(diet === "vegan") dietParam = "vegan"
+
+// URL mit Sprachfilter 'de'
+const url = `https://api.spoonacular.com/recipes/complexSearch?apiKey=${API_KEY}&includeIngredients=${ingredients}&excludeIngredients=${exclude}&diet=${dietParam}&maxReadyTime=${maxTime}&number=5&addRecipeInformation=true&language=de`;
+
+try {
+const response = await fetch(url);
+const data = await response.json();
+loader.style.display = "none"
+
+if (data.results && data.results.length > 0) {
+data.results.forEach(recipe => {
+const card = document.createElement('div');
+card.className = 'recipe-card';
+card.innerHTML = `
+<img src="${recipe.image}" alt="${recipe.title}">
+<div class="recipe-content">
+<h3>${recipe.title}</h3>
+<div class="meta">⏱️ ${recipe.readyInMinutes} Min.</div>
+<a href="${recipe.sourceUrl}" target="_blank" class="link-btn">Rezept öffnen</a>
+</div>
+`;
+resultsDiv.appendChild(card);
+});
+} else {
+resultsDiv.innerHTML = "<p style='text-align:center;'>Keine deutschen Rezepte gefunden. Versuche andere Zutaten.</p>"
+}
+} catch (error) {
+loader.style.display = "none"
+resultsDiv.innerHTML = "<p style='color:red;'>Fehler bei der Anfrage.</p>"
+}
+}
+</script>
+
+</body>
+</html>
