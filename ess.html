@@ -28,11 +28,11 @@ button:hover { background: var(--secondary); }
 <body>
 
 <div class="container">
-<h1>🍽️ Rezept-Finder (DE Optimiert)</h1>
+<h1>🍽️ Rezept-Finder</h1>
 <div class="ingredients-group">
-<label>Deine Zutaten</label>
-<input type="text" id="ing1" placeholder="Zutat 1">
-<input type="text" id="ing2" placeholder="Zutat 2">
+<label>Deine Zutaten (auf Deutsch)</label>
+<input type="text" id="ing1" placeholder="Zutat 1 (z.B. Spinat)">
+<input type="text" id="ing2" placeholder="Zutat 2 (z.B. Nudeln)">
 <input type="text" id="ing3" placeholder="Zutat 3 (optional)">
 </div>
 
@@ -52,24 +52,38 @@ button:hover { background: var(--secondary); }
 <option value="120">Umfangreich</option>
 </select>
 
-<button onclick="searchRecipes()">Rezepte suchen</button>
+<button onclick="searchRecipes()">Gerichte suchen</button>
 
-<div id="loader">Suche läuft... 🔍</div>
+<div id="loader">Ich übersetze und suche... 🔍</div>
 <div id="results"></div>
 </div>
 
 <script>
+// Ein kleines Wörterbuch für die wichtigsten Zutaten
+const dictionary = {
+"spinat": "spinach", "kartoffeln": "potatoes", "nudeln": "pasta", "reis": "rice",
+"hähnchen": "chicken", "rind": "beef", "fisch": "fish", "eier": "eggs",
+"tomaten": "tomatoes", "zwiebeln": "onions", "knoblauch": "garlic", "käse": "cheese",
+"milch": "milk", "sahne": "cream", "apfel": "apple", "karotten": "carrots",
+"paprika": "peppers", "pilze": "mushrooms", "hackfleisch": "minced meat"
+};
+
 async function searchRecipes() {
-const i1 = document.getElementById('ing1').value;
-const i2 = document.getElementById('ing2').value;
-const i3 = document.getElementById('ing3').value;
+const fields = [
+document.getElementById('ing1').value.toLowerCase().trim(),
+document.getElementById('ing2').value.toLowerCase().trim(),
+document.getElementById('ing3').value.toLowerCase().trim()
+];
 const diet = document.getElementById('diet').value;
 const maxTime = document.getElementById('effort').value;
 const resultsDiv = document.getElementById('results');
 const loader = document.getElementById('loader');
 
-let ingredients = [i1, i2, i3].filter(i => i !== "").join(',');
-if (!ingredients) { alert("Gib bitte mindestens eine Zutat ein!"); return; }
+// Übersetze deutsche Wörter in englische für die API
+let translatedIngredients = fields.map(item => dictionary[item] || item).filter(i => i !== "");
+let searchString = translatedIngredients.join(',');
+
+if (!searchString) { alert("Bitte gib eine Zutat ein!"); return; }
 
 resultsDiv.innerHTML = ""
 loader.style.display = "block"
@@ -82,8 +96,7 @@ if(diet === "fish") exclude = "meat,chicken,pork,beef"
 if(diet === "vegetarian") dietParam = "vegetarian"
 if(diet === "vegan") dietParam = "vegan"
 
-// Wir fügen im Hintergrund 'german' hinzu, um die Trefferquote für deutsche Seiten zu erhöhen
-const url = `https://api.spoonacular.com/recipes/complexSearch?apiKey=${API_KEY}&includeIngredients=${ingredients}&excludeIngredients=${exclude}&diet=${dietParam}&maxReadyTime=${maxTime}&number=5&addRecipeInformation=true&instructionsRequired=true&fillIngredients=true`;
+const url = `https://api.spoonacular.com/recipes/complexSearch?apiKey=${API_KEY}&includeIngredients=${searchString}&excludeIngredients=${exclude}&diet=${dietParam}&maxReadyTime=${maxTime}&number=5&addRecipeInformation=true&fillIngredients=true`;
 
 try {
 const response = await fetch(url);
@@ -94,7 +107,6 @@ if (data.results && data.results.length > 0) {
 data.results.forEach(recipe => {
 const card = document.createElement('div');
 card.className = 'recipe-card';
-// Link für Google Translate erstellen
 const googleTranslateUrl = `https://translate.google.com/translate?sl=auto&tl=de&u=${encodeURIComponent(recipe.sourceUrl)}`;
 card.innerHTML = `
 <img src="${recipe.image}" alt="${recipe.title}">
@@ -102,19 +114,19 @@ card.innerHTML = `
 <h3>${recipe.title}</h3>
 <div class="meta">⏱️ ${recipe.readyInMinutes} Min.</div>
 <div class="btn-group">
-<a href="${recipe.sourceUrl}" target="_blank" class="link-btn">Original (EN)</a>
-<a href="${googleTranslateUrl}" target="_blank" class="trans-btn">Auf Deutsch lesen</a>
+<a href="${recipe.sourceUrl}" target="_blank" class="link-btn">Original</a>
+<a href="${googleTranslateUrl}" target="_blank" class="trans-btn">Deutsch</a>
 </div>
 </div>
 `;
 resultsDiv.appendChild(card);
 });
 } else {
-resultsDiv.innerHTML = "<p style='text-align:center;'>Keine Rezepte gefunden. Versuche es mit allgemeineren Zutaten.</p>"
+resultsDiv.innerHTML = "<p style='text-align:center;'>Nichts gefunden. Versuche es mit englischen Begriffen oder einfacheren Zutaten.</p>"
 }
 } catch (error) {
 loader.style.display = "none"
-resultsDiv.innerHTML = "<p style='color:red;'>Fehler bei der Verbindung.</p>"
+resultsDiv.innerHTML = "<p style='color:red;'>API Fehler.</p>"
 }
 }
 </script>
